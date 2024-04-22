@@ -1,0 +1,15 @@
+---
+- name: deploy lamp stack
+  hosts: all
+  become: true
+  tasks:
+    - name: Copy file with owner and permissions
+      ansible.builtin.copy:
+        src: /home/vagrant/LAMPstack.sh
+        dest: /home/vagrant/LAMPstack.sh
+        owner: vagrant
+        group: vagrant
+        mode: '0755'
+
+    - name: install lamp stack on ubintu server
+      script: /home/vagrant/LAMPstack.sh
