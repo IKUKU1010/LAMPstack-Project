@@ -6,9 +6,32 @@ install_packages() {
     sudo apt install -y apache2
     sudo add-apt-repository -y ppa:ondrej/php
     sudo apt update
-    sudo apt install -y php8.2 php8.2-curl php8.2-dom php8.2-mbstring php8.2-xml php8.2-mysql php8.2-fpm zip unzip
+    sudo apt install -y php8.2
+    sudo apt install -y php8.2 php8.2-curl php8.2-dom php8.2-mbstring php8.2-xml php8.2-mysql php8.2-fpm
+    sudo apt install -y zip unzip
     sudo a2enmod rewrite
     sudo systemctl restart apache2
+}
+
+# Function to create Apache configuration file for PHP 8.2
+create_apache_config() {
+    local APACHE_CONFIG_FILE="/etc/apache2/conf-available/php8.2-fpm.conf"
+    if [ ! -f "$APACHE_CONFIG_FILE" ]; then
+        sudo tee "$APACHE_CONFIG_FILE" > /dev/null <<EOF
+<IfModule mod_fastcgi.c>
+    AddHandler php8.2-fcgi .php
+    Action php8.2-fcgi /php8.2-fcgi
+    Alias /php8.2-fcgi /usr/lib/cgi-bin/php8.2-fcgi
+    FastCgiExternalServer /usr/lib/cgi-bin/php8.2-fcgi -socket /run/php/php8.2-fpm.sock -pass-header Authorization -idle-timeout 60
+    <Directory /usr/lib/cgi-bin>
+        Require all granted
+    </Directory>
+</IfModule>
+EOF
+        echo "Apache configuration file for PHP created at: $APACHE_CONFIG_FILE"
+    else
+        echo "Apache configuration file for PHP already exists."
+    fi
 }
 
 # Function to install Composer
@@ -21,7 +44,7 @@ install_composer() {
 # Function to clone Laravel repository and set up permissions
 setup_laravel() {
     cd /var/www/
-    export GIT_HTTP_LOW_SPEED_LIMIT=10240 
+    export GIT_HTTP_LOW_SPEED_LIMIT=10240
     sudo git clone https://github.com/laravel/laravel.git
     sudo chown -R $USER:$USER /var/www/laravel
     cd laravel
@@ -47,7 +70,7 @@ install_mysql() {
     sudo mysql -uroot -e "CREATE USER 'Wisdomar'@'localhost' IDENTIFIED BY 'nuhaven';"
     sudo mysql -uroot -e "GRANT ALL PRIVILEGES ON Thankg.* TO 'Wisdomar'@'localhost';"
     sudo mysql -uroot -e "FLUSH PRIVILEGES;"
- cd /var/www/laravel
+    cd /var/www/laravel
     sudo sed -i "23 s/^#//g" /var/www/laravel/.env
     sudo sed -i "24 s/^#//g" /var/www/laravel/.env
     sudo sed -i "25 s/^#//g" /var/www/laravel/.env
@@ -71,11 +94,9 @@ configure_apache() {
 <VirtualHost *:80>
     ServerName localhost
     DocumentRoot /var/www/laravel/public
-
     <Directory /var/www/laravel>
         AllowOverride All
     </Directory>
-
     ErrorLog \${APACHE_LOG_DIR}/laravel-error.log
     CustomLog \${APACHE_LOG_DIR}/laravel-access.log combined
 </VirtualHost>
@@ -89,6 +110,7 @@ EOF
 
 # Main script
 install_packages
+create_apache_config
 install_composer
 setup_laravel
 set_permissions
