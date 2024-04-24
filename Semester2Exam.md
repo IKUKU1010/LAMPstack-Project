@@ -41,6 +41,8 @@ end
 
 ![provisioning of two Ubuntu-based servers](./vagrantes.png)
 
+
+
 ![VMs up and running](./LAMPVms.png)
 
 
@@ -115,6 +117,100 @@ sudo nano authorized_keys
 paste the copied public key from your ansible machine and save in the authorized_keys text editor
 
 
+Grant Administrative Privileges to vagrat user or any other admin user
+
+```bash
+
+usermod -aG sudo vagrant
+```
+
+
+```bash
+
+nano /etc/sudoers
+
+```
+
+```bash
+
+vagrant    ALL=(ALL:ALL) NOPASSWD:ALL
+
+```
+
+
+config sshd file to allow password and key publc key authentication
+
+```bash
+
+nano /etc/ssh/sshd_config
+
+```
+
+we now copy the public keys we generated from the master node to the authorized_key file on the lave node
+
+
+we logout of slave node and login to the master server. then try to login to the slave via ssh
+
+
+```bash
+
+ssh vagrant@192.168.32.22
+
+```
+Login ws successful as shown below
+
+![Successful remote login to slave node](./truelogin%20Slave.png)
+
+
+
+We have now achieved direct remote connection to the slave node. we will can now deploy our ansible playbook to install the LAMP stack.
+
+we will achieve that by creating arranging our important resources for the task which are;
+
+A. Playbook.yml
+B. Inventory File
+C. Our Bash script with the \lamp stack installation commandds
+
+My resources are all there on the Project Repository
+
+we deploy the LAMP STACK TO THE SLAVE node via this ansible command
+
+
+we first of all try an ansible ping of slave node
+
+```bash
+
+ansible all -i inventory --user vagrant -m ping -e "count=2"
+
+```
+
+![ansible ping test](./ansible%20ping%20test.png)
+
+we are now ready to launch our playbook
+
+
+ansible-playbook -i inventory playbook.yml
+
+
+![ansible playbook Launched](./play.png)
+
+Playbook ran succesfuly and deployed LAMP Stack on the Ubuntu Slave server as shown below;
+
+![Playbook report = Success](./Play%20report.png)
+
+
+
+
+We will now head to our browser to check if our laravel app was installed correctly;
+
+
+video proof
+
+
+<video src="./VID-20240424-WA0000.mp4" width="320" height="240" controls></video>
+
+
+
 
 
 
@@ -123,7 +219,52 @@ PART B
 ## Create a cron job to check the server’s uptime every 12 am.
 
 
+we need to run the crontab manually to be sure its working before adding it to a script or to the playbook. we first test the crontab for period of every 5 minutes
+
+Open the crontab file for editing:
+
+```bash
+
+crontab -e
+
+```
+
+Add a new line at the end of the file with the following command:
+
+
+```bash
+
+*/5 * * * * uptime >> /var/log/server_uptime.log
+
+```
+
+
+now that it worked as shown below;
 
 
 
+we will add it to the playbook
 
+```bash
+
+0 0 * * * uptime >> /var/log/server_uptime.log
+
+```
+
+This cron job was appended to the Ansible playbook as show below;
+
+
+```bash
+
+   - name: Deploy cron job to check server uptime
+  hosts: all
+  become: true
+  tasks:
+    - name: Add cron job to check server uptime
+      cron:
+        name: "Check server uptime"
+        minute: 0
+        hour: 0
+        job: "uptime >> /var/log/server_uptime.log"
+
+```

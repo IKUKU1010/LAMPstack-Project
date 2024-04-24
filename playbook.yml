@@ -1,5 +1,4 @@
----
-- name: deploy lamp stack
+- name: deploy LAMP stack on Ubuntu remote Server
   hosts: all
   become: true
   tasks:
@@ -11,5 +10,17 @@
         group: vagrant
         mode: '0755'
 
-    - name: install lamp stack on ubintu server
+    - name: install LAMP stack on Ubuntu server
       script: /home/vagrant/LAMPstack.sh
+
+
+- name: Deploy cron job to check server uptime
+  hosts: all
+  become: true
+  tasks:
+    - name: Add cron job to check server uptime
+      cron:
+        name: "Check server uptime"
+        minute: 0
+        hour: 0
+        job: "uptime >> /var/log/server_uptime.log"
